@@ -1,0 +1,76 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: projects
+// Document ID: {projectId}
+// Fields:
+//   - name: string (required)
+//   - description: string (optional)
+//   - createdAt: timestamp (required)
+//   - currentVersionId: string (optional)
+//
+// Collection: projects/{projectId}/versions
+// Document ID: {versionId}
+// Fields:
+//   - projectId: string (required)
+//   - notes: string (optional)
+//   - createdAt: timestamp (required)
+//   - data: map (required) - Contains all PRD sections
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "itteamconcentrix@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['name', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             (data.description == null || (data.description is string && data.description.size() < 1000));
+    }
+
+    function isValidVersion(data) {
+      return data.keys().hasAll(['projectId', 'createdAt', 'data']) &&
+             data.projectId is string &&
+             data.data is map;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidProject(request.resource.data);
+      allow update: if isAuthenticated() && isValidProject(request.resource.data);
+      allow delete: if isAdmin();
+
+      match /versions/{versionId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && isValidVersion(request.resource.data);
+        allow update: if isAdmin(); // Only admin can edit versions once created
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
