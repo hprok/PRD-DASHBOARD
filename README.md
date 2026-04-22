@@ -1,4 +1,5 @@
 ![09ab6219fb447a1a23557](https://github.com/user-attachments/assets/5f87b92d-50cd-4fde-a72b-e90210f9d4d5)
+<img width="1848" height="748" alt="image" src="https://github.com/user-attachments/assets/ec6a7e5c-0b45-486b-9375-6de999e11963" />
 
 ## PRD Dashboard (Prototype)
 
